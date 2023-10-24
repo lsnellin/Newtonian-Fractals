@@ -1,4 +1,4 @@
-import sys, pygame, numpy
+import sys, pygame, numpy, math
 from ComplexNumber import ComplexNumber
 from point import point
 
@@ -10,17 +10,19 @@ champagne = pygame.Color('#F3DFC1')
 desertSand = pygame.Color('#DDBEA8')
 
 #Simulation Parameters:
-size = width, height = 1920, 1080
+size = width, height = 1000, 1000
 graphSize = scaleX, scaleY = (640, 640)
-graphScale = xAxis, yAxis = (64, 64) #Graph is n*m, n = real, m = imaginary
+#Graph is n*m, n = real, m = imaginary
+xAxis = 4
+yAxis = 4
 
 xPoints = 64
 yPoints = 64
 
 #Polynomial Function Definitions:
 a = ComplexNumber(1, 0)
-b = ComplexNumber(-5, 0)
-c = ComplexNumber(0, 0)
+b = ComplexNumber(0, 0)
+c = ComplexNumber(3, 0)
 d = ComplexNumber(-1, 0)
 
 def f(_a):
@@ -51,14 +53,16 @@ def drawCircle(point):
     pointImag = point.location.imag
     (maxReal, maxImag) = (xAxis / 2, yAxis / 2)
     #scaleX and scaleY are the max true x and y coordinates for drawing purposes
+
+    
     
     pointX = centerX + pointReal * (scaleX / 2) / maxReal
     pointY = centerY + pointImag * (scaleY / 2) / maxImag
     
     radius = 1
-    pygame.draw.circle(screen, champagne, [pointX, pointY], radius)
-    
-    
+    if abs(pointReal) < maxReal and abs(pointImag) < maxImag:
+        pygame.draw.circle(screen, champagne, [pointX, pointY], radius)
+    return
     
 
 def calculateOffset(point):
@@ -104,6 +108,17 @@ def drawGraph(screen):
     right = int((height - scaleY) / 2)
     pygame.draw.rect(screen, darkCyan, pygame.Rect(left, right, scaleX, scaleY))
 
+def zoom(zoomIn):
+    global xAxis, yAxis
+    print(xAxis, yAxis)
+    if zoomIn:
+        xAxis *= 1.1
+        yAxis *= 1.1
+    else:
+        xAxis /= 1.1
+        yAxis /= 1.1
+
+
 #Initialize Game:
 points = initializePoints()
 pygame.init()
@@ -113,10 +128,25 @@ screen = pygame.display.set_mode(size)
 while True:
     #Poll for events
     for event in pygame.event.get():
+        #Click X
         if event.type == pygame.QUIT:
             sys.exit()
+        
+        #MOUSEDOWN
         if event.type == 1025:
-            updateTargets()
+            if event.button == 1:
+                #Iterate newton's method and update the points
+                updateTargets()
+            elif event.button == 3:
+                #Reset Points
+                points = initializePoints()
+        
+        #KEYS
+        if event.type == 768:
+            if event.unicode == '-':
+                zoom(False)
+            elif event.unicode == '+':
+                zoom(True)
     
     #Update point Positions
     updatePoints()
@@ -126,7 +156,7 @@ while True:
     
     #Draw the screen
     screen.fill(darkPurple)
-    #drawGraph(screen)
+    drawGraph(screen)
     
     clock.tick(60)
     
