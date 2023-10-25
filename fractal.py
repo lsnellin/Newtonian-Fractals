@@ -1,7 +1,8 @@
-import sys, pygame, numpy, math
+import sys, pygame, numpy, math, os
 from ComplexNumber import ComplexNumber
 from point import pixel
 from tqdm import tqdm
+
 
 #Colors:
 darkPurple = pygame.Color('#160F29')
@@ -31,13 +32,9 @@ def f(_a):
 def f_prime(_a):
     return (ComplexNumber(3,0) * a * _a * _a) + (ComplexNumber(2,0) * b * _a) + c
 
-def drawPixels():
-    for i in range(width):
-        for j in range(height):
-            pixel = points[i][j]
-            screen.set_at(pixel.pixelXY, pixel.color)
-
-def calculatePixel(pixel):
+def calculatePixelColor(pixel):
+    
+    stable = False
     location = pixel.location
     for i in range(iterations):
         derivative = f_prime(location)
@@ -48,29 +45,45 @@ def calculatePixel(pixel):
         
         for i in range(len(roots)):
             difference = location - roots[i]
-            if difference.real <= tolerance and difference.imag <= tolerance:
-                pixel.color = rootColor[i]
+            if abs(difference.real) <= tolerance and abs(difference.imag) <= tolerance:
+                pixel.color = i
+                stable = True
+                break
+        if stable: 
+            break
                 
-def initializePixels():
-    points = list()
-
-    for i in tqdm (range (width), desc="Loading..."):
-        print("X: ", i)
-        row = list()
-        for j in range(height):
+def computeFractal():
+    out = open("Fractals/" + fractalNumber + ".txt", "w")
+    for i in tqdm (range (height), desc="Loading..."):
+        for j in range(width):
             point = pixel(ComplexNumber(i - width / 2, j - height / 2), (i, j))
-            calculatePixel(point)
-            row.append(point)
-        points.append(row)
+            calculatePixelColor(point)
+            out.write('{}'.format(point.color))
+        out.write("\n")
 
-    return points
-        
+    out.close()
 
-#Initialize Game:
-points = initializePixels()
+def drawFractal():
+    out = open("Fractals/" + fractalNumber + ".txt", "r")
+    lines = out.read().split("\n")
+    for i in range(len(lines)):
+        line = lines[i]
+        for j in range(len(line)):
+            color = rootColor[int(lines[i][j])]
+            screen.set_at((i, j), color)
+            
+    
+    out.close()
+    
+#Ask for filename
+fractalNumber = input("Enter the fractal number: ")
 
+#If file doesn't exist, compute the fractal
+if not os.path.exists("./Fractals/" + fractalNumber + ".txt"):
+    computeFractal()
+    
 
-
+#Initialize pygame
 pygame.init()
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode(size)
@@ -87,7 +100,7 @@ while True:
     
     #Draw the screen
     screen.fill(darkPurple)
-    drawPixels()
+    drawFractal()
 
     
     clock.tick(1)
