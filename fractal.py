@@ -2,6 +2,7 @@ import sys, pygame, numpy, math, os
 from ComplexNumber import ComplexNumber
 from point import pixel
 from tqdm import tqdm
+from polynomial import poly
 
 
 #Colors:
@@ -10,43 +11,37 @@ caribbeanCurrent = pygame.Color('#246A73')
 darkCyan = pygame.Color('#368F8B')
 champagne = pygame.Color('#F3DFC1')
 desertSand = pygame.Color('#DDBEA8')
+blue = pygame.Color('#084887')
+orange = pygame.Color('#F58A07')
+green = pygame.Color('#03CEA4')
 
-rootColor = [caribbeanCurrent, champagne, desertSand]
+rootColor = [blue, orange, green]
 
 #Simulation Parameters:
 size = width, height = 1920, 1080
 iterations = 100
 tolerance = 0.0001
 
-#Polynomial Function Definitions:
-a = ComplexNumber(1, 0)
-b = ComplexNumber(0, 0)
-c = ComplexNumber(0, 0)
-d = ComplexNumber(-1, 0)
 
-roots = [ComplexNumber(1, 0), ComplexNumber(-0.5, math.sqrt(3) / 2), ComplexNumber(-0.5, -1 * math.sqrt(3) / 2)]
+def findRoots(coeff):
+    return numpy.roots(coeff)
 
-def f(_a):
-    return (a * _a * _a * _a) + (b * _a * _a ) + (c * _a) + d
-    
-def f_prime(_a):
-    return (ComplexNumber(3,0) * a * _a * _a) + (ComplexNumber(2,0) * b * _a) + c
-
-def calculatePixelColor(pixel):
+def calculatePixelColor(pixel, polynomial, roots):
     
     stable = False
     location = pixel.location
     for i in range(iterations):
-        derivative = f_prime(location)
+        derivative = polynomial.deriv(location)
         if derivative.real != 0 or derivative.imag != 0:
-            location -= f(location) / f_prime(location)
+            location -= polynomial.val(location) / derivative
         else:
             break
         
-        for i in range(len(roots)):
-            difference = location - roots[i]
+        for j in range(len(roots)):
+            difference = location - roots[j]
             if abs(difference.real) <= tolerance and abs(difference.imag) <= tolerance:
-                pixel.color = i
+                pixel.color = j
+                pixel.shade =  i
                 stable = True
                 break
         if stable: 
@@ -54,26 +49,50 @@ def calculatePixelColor(pixel):
                 
 def computeFractal():
     out = open("Fractals/" + fractalNumber + ".txt", "w")
-    for i in tqdm (range (height), desc="Loading..."):
+    polynomial = poly(polynomialDef)
+    roots = findRoots(polynomialDef)
+    contents = ""
+    for i in tqdm(range (height), desc="Loading..."):
         for j in range(width):
-            point = pixel(ComplexNumber(i - width / 2, j - height / 2), (i, j))
-            calculatePixelColor(point)
-            out.write('{}'.format(point.color))
-        out.write("\n")
+            location = complex(i - width / 2, j - height / 2)
+            px = pixel(location, (i, j))
+            calculatePixelColor(px, polynomial, roots)
+            ''.join((contents, '{}{}'.format(px.color, px.shade)))
+        ''.join((contents,"\n"))
 
+    out.write(contents)
     out.close()
 
 def drawFractal():
     out = open("Fractals/" + fractalNumber + ".txt", "r")
     lines = out.read().split("\n")
     for i in range(len(lines)):
+        j = 1
         line = lines[i]
-        for j in range(len(line)):
-            color = rootColor[int(lines[i][j])]
-            screen.set_at((i, j), color)
+        pixels = line.split(',')
+        for p in pixels:
+            if not (p == ''):
+                pArr = p.split(':')
+                c = int(pArr[0])
+                s = int(pArr[1])
+            
+                numShades = 10
+                shade = (s % numShades) / (numShades * 2) + 0.5
+                
+                color = rootColor[c]
+                shadedColor = pygame.Color(int(color.r * shade), int(color.g * shade), int(color.b * shade))
+                
+                """Draw from top to bottom (Each line represents a row of pixels, i = height, j = width"""
+                screen.set_at((j, i), shadedColor) 
+                                                                           
+            j = j+1
             
     
     out.close()
+
+
+#Polynomial Function Definitions:
+polynomialDef = [5,3,27,1,26,3,8,10,2]
     
 #Ask for filename
 fractalNumber = input("Enter the fractal number: ")
@@ -87,7 +106,6 @@ if not os.path.exists("./Fractals/" + fractalNumber + ".txt"):
 pygame.init()
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode(size)
-
 
 while True:
     #Poll for events

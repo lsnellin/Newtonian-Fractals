@@ -9,7 +9,7 @@ class ComplexNumber:
     def __mul__(self, other):
         real = self.real * other.real - self.imag * other.imag
         imag = self.real * other.imag + self.imag * other.real
-        return ComplexNumber(real, imag)
+        return ComplexNumber(real,imag)
      
     def __truediv__(self, other):
         denom = other.real**2 + other.imag**2
@@ -26,3 +26,8 @@ class ComplexNumber:
         real = self.real - other.real
         imag = self.imag - other.imag
         return ComplexNumber(real, imag)
+    def mult(self, other):
+        real = self.real * other
+        imag = self.imag * other
+        return ComplexNumber(real, imag)
+        

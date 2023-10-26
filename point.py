@@ -4,7 +4,8 @@ class point:
         self.target = target
 
 class pixel:
-    def __init__(self, location, pixelXY, color = 0):
+    def __init__(self, location, pixelXY, color = 0, shade = 10):
         self.location = location
         self.pixelXY = pixelXY
         self.color = color
+        self.shade = shade
