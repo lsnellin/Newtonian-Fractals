@@ -1,5 +1,4 @@
 import numpy
-from ComplexNumber import ComplexNumber
 
 class poly:
     def __init__(self, coefficients):

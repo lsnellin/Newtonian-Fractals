@@ -1,7 +1,4 @@
-import sys, pygame, numpy, math, os
-from ComplexNumber import ComplexNumber
-from point import pixel
-from tqdm import tqdm
+import sys, pygame, numpy, math, os, multiprocessing, random
 from polynomial import poly
 
 
@@ -15,55 +12,59 @@ blue = pygame.Color('#084887')
 orange = pygame.Color('#F58A07')
 green = pygame.Color('#03CEA4')
 
-rootColor = [blue, orange, green]
 
 #Simulation Parameters:
-size = width, height = 1920, 1080
+size = width, height = 1000, 1000
 iterations = 100
 tolerance = 0.0001
+polynomialDef = [1,0,0,0,0,0,0,0,0,0,0,0,-1]
+rootColor = list()
 
+for i in range(len(polynomialDef) - 1):
+    color = pygame.Color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+    rootColor.append(color)
 
 def findRoots(coeff):
     return numpy.roots(coeff)
 
-def calculatePixelColor(pixel, polynomial, roots):
+def calculatePixelColor(args):
+    i, j, width, height, polynomial, roots, tolerance, iterations = args
+    location = complex(i - width / 2, j - height / 2)
+    color = 0
+    shade = 10
     
     stable = False
-    location = pixel.location
-    for i in range(iterations):
+    for it in range(iterations):
         derivative = polynomial.deriv(location)
         if derivative.real != 0 or derivative.imag != 0:
             location -= polynomial.val(location) / derivative
         else:
             break
         
-        for j in range(len(roots)):
-            difference = location - roots[j]
+        for r, root in enumerate(roots):
+            difference = location - root
             if abs(difference.real) <= tolerance and abs(difference.imag) <= tolerance:
-                pixel.color = j
-                pixel.shade =  i
+                color = r
+                shade =  it
                 stable = True
                 break
         if stable: 
             break
+        
+    return f"{color}:{shade}"
                 
-def computeFractal():
-    out = open("Fractals/" + fractalNumber + ".txt", "w")
+def computeFractal(width, height, iterations, tolerance, polynomialDef, fractalNumber):
     polynomial = poly(polynomialDef)
     roots = findRoots(polynomialDef)
-    contents = ""
-    for i in tqdm(range (height), desc="Loading..."):
-        for j in range(width):
-            location = complex(i - width / 2, j - height / 2)
-            px = pixel(location, (i, j))
-            calculatePixelColor(px, polynomial, roots)
-            ''.join((contents, '{}{}'.format(px.color, px.shade)))
-        ''.join((contents,"\n"))
+    pool = multiprocessing.Pool(processes=1)
+    
+    with open(f"Fractals/{fractalNumber}.txt", "w") as out:
+        pixel_args = [(i, j, width, height, polynomial, roots, tolerance, iterations) for i in range(height) for j in range(width)]
+        results = pool.map(calculatePixelColor, pixel_args)
+        pixels = numpy.array(results).reshape(height, width)
+        numpy.savetxt(out, pixels, fmt="%s", delimiter=",")
 
-    out.write(contents)
-    out.close()
-
-def drawFractal():
+def drawFractal(screen, fractalNumber):
     out = open("Fractals/" + fractalNumber + ".txt", "r")
     lines = out.read().split("\n")
     for i in range(len(lines)):
@@ -90,36 +91,35 @@ def drawFractal():
     
     out.close()
 
+def main() :
+    #Ask for filename
+    fractalNumber = input("Enter the fractal number: ")
 
-#Polynomial Function Definitions:
-polynomialDef = [5,3,27,1,26,3,8,10,2]
-    
-#Ask for filename
-fractalNumber = input("Enter the fractal number: ")
+    #If file doesn't exist, compute the fractal
+    if not os.path.exists("./Fractals/" + fractalNumber + ".txt"):
+        computeFractal(width, height, iterations, tolerance, polynomialDef, fractalNumber)
+        
 
-#If file doesn't exist, compute the fractal
-if not os.path.exists("./Fractals/" + fractalNumber + ".txt"):
-    computeFractal()
-    
+    #Initialize pygame
+    pygame.init()
+    clock = pygame.time.Clock()
+    screen = pygame.display.set_mode(size)
 
-#Initialize pygame
-pygame.init()
-clock = pygame.time.Clock()
-screen = pygame.display.set_mode(size)
+    while True:
+        #Poll for events
+        for event in pygame.event.get():
+            #Click X
+            if event.type == pygame.QUIT:
+                sys.exit()
+        
+        pygame.display.flip()
+        
+        #Draw the screen
+        screen.fill(darkPurple)
+        drawFractal(screen, fractalNumber)
 
-while True:
-    #Poll for events
-    for event in pygame.event.get():
-        #Click X
-        if event.type == pygame.QUIT:
-            sys.exit()
-    
-    pygame.display.flip()
-    
-    #Draw the screen
-    screen.fill(darkPurple)
-    drawFractal()
+        
+        clock.tick(1)
 
-    
-    clock.tick(1)
-    
+if __name__ == "__main__":
+    main()
