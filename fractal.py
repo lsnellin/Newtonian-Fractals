@@ -12,7 +12,6 @@ blue = pygame.Color('#084887')
 orange = pygame.Color('#F58A07')
 green = pygame.Color('#03CEA4')
 
-
 #Simulation Parameters:
 size = width, height = 1000, 1000
 iterations = 100
