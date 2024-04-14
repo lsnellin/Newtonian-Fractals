@@ -14,7 +14,8 @@ def main():
             pg.Color('#C09BD8')
         ]),
         shades = 10,
-        size = (400,400)
+        size = (10000,10000),
+        iterations = 50
     )
     
     f.generate()
